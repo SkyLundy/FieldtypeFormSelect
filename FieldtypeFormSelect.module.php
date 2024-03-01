@@ -1,9 +1,5 @@
 <?php namespace ProcessWire;
 
-/**
- * @todo Set up hook to listen for form deletes so they are removed from saved field settings
- */
-
 class FieldtypeFormSelect extends FieldType {
 
   public static function getModuleInfo() {
