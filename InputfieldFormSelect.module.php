@@ -71,7 +71,7 @@ class InputfieldFormSelect extends Inputfield {
       return $val;
     };
 
-    $forms = $this->getFormOptions();
+    $forms = $this->___getFormOptions();
 
     $options = array_map(fn($form) => strtr($markup, [
       '%{VALUE}' => $form->id,
@@ -92,7 +92,7 @@ class InputfieldFormSelect extends Inputfield {
    * configuration
    * @return array<Form>
    */
-  private function getFormOptions(): array {
+  private function ___getFormOptions(): array {
     $field = $this->hasField;
     $filter = $field->filter_values;
     $forms = array_values($this->modules->FormBuilder->forms->loadAll());
@@ -113,8 +113,7 @@ class InputfieldFormSelect extends Inputfield {
       };
     };
 
-
-    return match ($field->form_select_option_type) {
+    $forms = match ($field->form_select_option_type) {
       'include_selected' => array_filter($forms, fn($form) => in_array($form->id, $filter)),
       'exclude_selected' => array_filter($forms, fn($form) => !in_array($form->id, $filter)),
       'include_name_startswith' => array_filter($forms, fn($form) => $nameMatch($form, 'starts')),
@@ -122,6 +121,14 @@ class InputfieldFormSelect extends Inputfield {
       'include_name_contains' => array_filter($forms, fn($form) => $nameMatch($form, 'contains')),
       default => $forms,
     };
+
+    // Alphabetize
+    usort(
+      $forms,
+      fn($a, $b) =>  strcmp($a->name, $b->name)
+    );
+
+    return $forms;
   }
 
   /**
@@ -136,7 +143,7 @@ class InputfieldFormSelect extends Inputfield {
       'name' => 'form_option_style',
       'value' => $this->form_option_style ?? self::FORM_OPTION_STYLE_NAME,
       'description' => __('How the names of forms should be displayed when the field is rendered: as the FormBuilder form name, or as a "labelized" version of the form name.'),
-      'notes' => __('The "labelized" version is created from the form name by replacing - and _ with a space and capitalizing each word. '),
+      'notes' => __('The "labelized" version is created from the form name by replacing - and _ with a space and, optionally, capitalizing each word.'),
       'options' => [
         self::FORM_OPTION_STYLE_NAME => 'an-example-form (original)',
         self::FORM_OPTION_STYLE_LABEL => 'an example form (as label, original casing)',
