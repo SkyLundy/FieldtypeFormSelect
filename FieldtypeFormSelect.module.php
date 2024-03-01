@@ -220,16 +220,13 @@ class FieldtypeFormSelect extends FieldType {
     $selectOptionType = $field->get('form_select_option_type');
     $includedIds = $field->get('included_form_ids') ?? [];
     $excludedIds = $field->get('excluded_form_ids') ?? [];
-    $nameStartsWithValue = $field->get('name_startswith_value') ?? '';
-    $nameEndsWithValue = $field->get('name_endswith_value') ?? '';
-    $nameContainsValue = $field->get('name_contains_value') ?? '';
 
     $filterValues = match ($selectOptionType) {
       'include_selected' => $includedIds,
       'exclude_selected' => $excludedIds,
-      'include_name_startswith' => $nameStartsWithValue,
-      'include_name_endswith' => $nameEndsWithValue,
-      'include_name_contains' => $nameContainsValue,
+      'include_name_startswith' => $field->get('name_startswith_value') ?? '',
+      'include_name_endswith' => $field->get('name_endswith_value') ?? '',
+      'include_name_contains' => $field->get('name_contains_value') ?? '',
       default => null,
     };
 
