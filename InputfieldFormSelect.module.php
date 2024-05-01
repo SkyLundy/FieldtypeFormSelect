@@ -34,6 +34,30 @@ class InputfieldFormSelect extends Inputfield {
   }
 
   /**
+   * Creates a null safe method of rendering the form using the iframe method.
+   * @param  string                $fieldName Name of field
+   * @param  string|Page|int|null  $page      ID or Page where field is located, if not provided the
+   *                                          current page is assumed
+   * @return string|null                      Markup for embedding or null if field is empty
+   */
+  public function embed(string $fieldName, string|Page|int|null $page = null): ?string {
+    $targetPage = match (gettype($page)) {
+      'string' => $this->pages->get($page),
+      'int' => $this->pages->get($page),
+      'object' => $page,
+      default => $this->page,
+    };
+
+    $fieldValue = $targetPage->$fieldName;
+
+    if (!$fieldValue) {
+      return null;
+    }
+
+    return $this->forms->embed($targetPage->$fieldName);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function ___render() {
