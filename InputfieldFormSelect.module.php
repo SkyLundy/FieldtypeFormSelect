@@ -14,8 +14,8 @@ class InputfieldFormSelect extends Inputfield {
     return [
       'title' => __('FormBuilder Select Inputfield'),
       'summary' => __('Select a form created via the Pro Form Builder module', __FILE__),
-      'version' => '001',
-      'href' => 'https://github.com/SkyLundy',
+      'version' => '100',
+      'href' => 'https://processwire.com/talk/topic/29771-fieldtypeformselect-a-field-for-selecting-forms-built-using-the-pro-formbuilder-module/',
       'icon' => 'envelope-o',
       'autoload' => true,
       'singular' => true,
