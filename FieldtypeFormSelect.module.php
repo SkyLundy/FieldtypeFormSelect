@@ -4,13 +4,6 @@ use InvalidArgumentException;
 
 class FieldtypeFormSelect extends FieldType {
 
-  /**
-   * Config options: Form output method
-   */
-  private const FIELD_OUTPUT_FORM_NAME = 'form_name';
-  private const FIELD_OUTPUT_FORM_BUILDER = 'form_builder';
-  private const FIELD_OUTPUT_FORM_ID = 'form_id';
-
   public static function getModuleInfo() {
     return [
       'title' => __('Form Select'),
@@ -28,6 +21,20 @@ class FieldtypeFormSelect extends FieldType {
       'installs' => 'InputfieldFormSelect'
     ];
   }
+
+    /**
+   * Config options: Form output method
+   */
+    public const FIELD_OUTPUT_FORM_ID = 'form_id';
+    public const FIELD_OUTPUT_FORM_NAME = 'form_name';
+    public const FIELD_OUTPUT_FORM_BUILDER_FORM = 'form_builder_form';
+    /**
+     * Config options: Form output method
+     */
+    public const EMPTY_FIELD_OUTPUT_EMPTY_STRING = 'empty_string';
+    public const EMPTY_FIELD_OUTPUT_NULL = 'null';
+    public const EMPTY_FIELD_OUTPUT_BOOL_FALSE = 'false';
+
 
   /**
    * {@inheritdoc}
@@ -80,6 +87,7 @@ class FieldtypeFormSelect extends FieldType {
     return [
       'form_option_style',
       'field_output',
+      'field_output_empty',
     ];
   }
 
@@ -93,7 +101,7 @@ class FieldtypeFormSelect extends FieldType {
     if (!$forms->count()) {
       $inputfields->add([
         'type' => 'InputfieldMarkup',
-        'label' => __('Form Select Options'),
+        'label' => __('Form select options'),
         'value' => __("There are no forms present created using Form Builder. This field will render an empty select element."),
         'themeColor' => 'warning',
       ]);
@@ -106,90 +114,116 @@ class FieldtypeFormSelect extends FieldType {
     // Create options with form name and form ID
     array_walk($allForms, fn(&$v) => $v = $v->id);
 
-    // Select forms to appear in select field
     $inputfields->add([
-      'label' => __('Form Select Options'),
-      'name' => 'form_select_option_type',
-      'type' => 'InputfieldRadios',
+      'type' => 'InputfieldFieldset',
+      'label' => __('Included forms'),
+      'name' => 'included_forms',
       'collapsed' => Inputfield::collapsedNever,
-      'required' => 1,
-      'defaultValue' => '1',
-      'description' => __('Which forms should be available for selection in this field?'),
-      'value' => $field->get('form_select_option_type') ?? 'all',
-      'options' => [
-        'all' => __('All Forms'),
-        'include_selected' => __('Choose Forms To Include'),
-        'exclude_selected' => __('Choose Forms To Exclude'),
-        'include_name_startswith' => __('Include Where Names Start With Value'),
-        'include_name_endswith' => __('Include Where Names End With Value'),
-        'include_name_contains' => __('Include Where Names Contain Value'),
+      'children' => [
+        // Select forms to appear in select field
+        'form_select_option_type' => [
+          'label' => __('Form select options'),
+          'type' => 'InputfieldRadios',
+          'icon' => 'list',
+          'required' => 1,
+          'defaultValue' => '1',
+          'description' => __('Which forms should be available for selection in this field?'),
+          'value' => $field->get('form_select_option_type') ?? 'all',
+          'options' => [
+            'all' => __('All forms'),
+            'include_selected' => __('Choose forms to include'),
+            'exclude_selected' => __('Choose forms to exclude'),
+            'include_name_startswith' => __('Include where name starts with value'),
+            'include_name_endswith' => __('Include where name ends with value'),
+            'include_name_contains' => __('Include where name contains value'),
+          ],
+        ],
+        // Select forms to include
+        'included_form_ids' => [
+          'label' => __('Included forms'),
+          'type' => 'InputfieldAsmSelect',
+          'value' => $field->get('included_form_ids') ?? [],
+          'options' => array_flip($allForms),
+          'showIf' => 'form_select_option_type=include_selected',
+          'required' => true,
+          'requiredIf' => 'form_select_option_type=include_selected',
+        ],
+        // Select forms to exclude
+        'excluded_form_ids' => [
+          'type' => 'InputfieldAsmSelect',
+          'label' => __('Excluded forms'),
+          'value' => $field->get('excluded_form_ids') ?? [],
+          'options' => array_flip($allForms),
+          'showIf' => 'form_select_option_type=exclude_selected',
+          'required' => true,
+          'requiredIf' => 'form_select_option_type=exclude_selected',
+        ],
+        // Select forms where name starts with string
+        'name_startswith_value' => [
+          'type' => 'InputfieldText',
+          'label' => __('Forms where name starts with'),
+          'value' => $field->get('name_startswith_value') ?? '',
+          'showIf' => 'form_select_option_type=include_name_startswith',
+          'required' => true,
+          'requiredIf' => 'form_select_option_type=include_name_startswith',
+        ],
+        // Select forms where name ends with string
+        'name_endswith_value' => [
+          'type' => 'InputfieldText',
+          'label' => __('Forms where name ends with'),
+          'value' => $field->get('name_endswith_value') ?? '',
+          'showIf' => 'form_select_option_type=include_name_endswith',
+          'required' => true,
+          'requiredIf' => 'form_select_option_type=include_name_endswith',
+        ],
+        // Select forms where name contains string
+        'name_contains_value' => [
+          'type' => 'InputfieldText',
+          'label' => __('Forms where name contains'),
+          'value' => $field->get('name_contains_value') ?? '',
+          'showIf' => 'form_select_option_type=include_name_contains',
+          'required' => true,
+          'requiredIf' => 'form_select_option_type=include_name_contains',
+        ]
       ],
     ]);
 
-    // Select forms to include
+    // Field output value when value is present
     $inputfields->add([
-      'label' => __('Included Forms'),
-      'type' => 'InputfieldAsmSelect',
-      'name' => 'included_form_ids',
-      'value' => $field->get('included_form_ids') ?? [],
-      'description' => __('Forms that are included in this field'),
-      'options' => array_flip($allForms),
-      'showIf' => 'form_select_option_type=include_selected',
-    ]);
-
-    // Select forms to exclude
-    $inputfields->add([
-      'type' => 'InputfieldAsmSelect',
-      'name' => 'excluded_form_ids',
-      'label' => __('Excluded Forms'),
-      'description' => __('Forms that are excluded from this field'),
-      'value' => $field->get('excluded_form_ids') ?? [],
-      'options' => array_flip($allForms),
-      'showIf' => 'form_select_option_type=exclude_selected',
-    ]);
-
-    // Select forms where name starts with string
-    $inputfields->add([
-      'type' => 'InputfieldText',
-      'name' => 'name_startswith_value',
-      'label' => __('Name Starts With Value'),
-      'description' => __('Forms with names that start with this value will be included'),
-      'value' => $field->get('name_startswith_value') ?? '',
-      'showIf' => 'form_select_option_type=include_name_startswith',
-      'required' => true,
-      'requiredIf' => 'form_select_option_type=include_name_startswith',
-    ]);
-
-    // Select forms where name ends with string
-    $inputfields->add([
-      'type' => 'InputfieldText',
-      'name' => 'name_endswith_value',
-      'label' => __('Name Ends With Value'),
-      'description' => __('Forms with names that end with this value will be included'),
-      'value' => $field->get('name_endswith_value') ?? '',
-      'showIf' => 'form_select_option_type=include_name_endswith',
-      'required' => true,
-      'requiredIf' => 'form_select_option_type=include_name_endswith',
-    ]);
-
-    // Select forms where name contains string
-    $inputfields->add([
-      'type' => 'InputfieldText',
-      'name' => 'name_contains_value',
-      'label' => __('Name Contains Value'),
-      'description' => __('Forms with names that contain this value will be included'),
-      'value' => $field->get('name_endswith_value') ?? '',
-      'showIf' => 'form_select_option_type=include_name_contains',
-      'required' => true,
-      'requiredIf' => 'form_select_option_type=include_name_contains',
-    ]);
-
-    $inputfields->add([
-      'type' => 'InputfieldSelect',
-      'name' => 'field_ouput',
-      'label' => __('Field Output'),
-      'description' => __('What type of value should the field output when a value is present?'),
-      'value' => $field->get('name_endswith_value') ?? '',
+      'type' => 'InputfieldFieldset',
+      'label' => __('Form field value type'),
+      'name' => 'field_output_types',
+      'collapsed' => Inputfield::collapsedNever,
+      'children' => [
+        'field_output' => [
+          'label' => __('Value when a form has been selected'),
+          'icon' => 'check-circle',
+          'type' => 'InputfieldRadios',
+          'columnWidth' => 50,
+          'required' => true,
+          'defaultValue' => '1',
+          'value' => $field->get('field_output') ?? 'form_id',
+          'options' => [
+            'form_id' => __('Form ID'),
+            'form_name' => __('Form name'),
+            'form_builder_form' => __('FormBuilder form object'),
+          ],
+        ],
+        'field_output_empty' => [
+          'label' => __('Value when a form has not been selected'),
+          'type' => 'InputfieldRadios',
+          'icon' => 'ban',
+          'columnWidth' => 50,
+          'required' => true,
+          'defaultValue' => '1',
+          'value' => $field->get('field_output_empty') ?? 'null',
+          'options' => [
+            'null' => __('null'),
+            'empty_string' => __('Empty string'),
+            'false' => __('Boolean false'),
+          ],
+        ],
+      ],
     ]);
 
     return $inputfields;

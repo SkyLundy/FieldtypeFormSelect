@@ -4,13 +4,6 @@
 
 class InputfieldFormSelect extends Inputfield {
 
-  /**
-   * Config options: Form select field label type
-   */
-  private const FORM_OPTION_STYLE_NAME = 'name';
-  private const FORM_OPTION_STYLE_LABEL = 'label';
-  private const FORM_OPTION_STYLE_LABEL_CAP = 'label_cap';
-
   public static function getModuleInfo() {
     return [
       'title' => __('FormBuilder Select Inputfield'),
@@ -28,6 +21,14 @@ class InputfieldFormSelect extends Inputfield {
       ],
     ];
   }
+
+  /**
+   * Config options: Form select field label type
+   */
+  private const FORM_OPTION_STYLE_NAME = 'name';
+  private const FORM_OPTION_STYLE_LABEL = 'label';
+  private const FORM_OPTION_STYLE_LABEL_CAP = 'label_cap';
+
 
   public function __construct() {
     parent::__construct();
@@ -135,12 +136,11 @@ class InputfieldFormSelect extends Inputfield {
     $inputfields = parent::___getConfigInputfields();
 
     $inputfields->add([
-      'label' => __('Select Option Style'),
+      'label' => __('Select option style'),
       'type' => 'InputfieldSelect',
       'name' => 'form_option_style',
       'value' => $this->form_option_style ?? self::FORM_OPTION_STYLE_NAME,
-      'description' => __('How the names of forms should be displayed when the field is rendered: as the FormBuilder form name, or as a "labelized" version of the form name.'),
-      'notes' => __('The "labelized" version is created from the form name by replacing - and _ with a space and, optionally, capitalizing each word.'),
+      'description' => __('How should the names of forms be displayed in the select field?'),
       'options' => [
         self::FORM_OPTION_STYLE_NAME => 'an-example-form (original)',
         self::FORM_OPTION_STYLE_LABEL => 'an example form (as label, original casing)',
