@@ -22,20 +22,6 @@ class FieldtypeFormSelect extends FieldType {
     ];
   }
 
-    /**
-   * Config options: Form output method
-   */
-    public const FIELD_OUTPUT_FORM_ID = 'form_id';
-    public const FIELD_OUTPUT_FORM_NAME = 'form_name';
-    public const FIELD_OUTPUT_FORM_BUILDER_FORM = 'form_builder_form';
-    /**
-     * Config options: Form output method
-     */
-    public const EMPTY_FIELD_OUTPUT_EMPTY_STRING = 'empty_string';
-    public const EMPTY_FIELD_OUTPUT_NULL = 'null';
-    public const EMPTY_FIELD_OUTPUT_BOOL_FALSE = 'false';
-
-
   /**
    * {@inheritdoc}
    */
@@ -76,8 +62,105 @@ class FieldtypeFormSelect extends FieldType {
     array $fieldNames = []
   ): void {
     foreach ($fieldNames as $fieldName) {
-      (int) $page->$fieldName->id === $deletedFormId && $page->setAndSave($fieldName, '');
+      (int) $page->$fieldName === $deletedFormId && $page->setAndSave($fieldName, '');
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function sanitizeValue(
+    Page $page,
+    Field $field,
+    $value
+  ) {
+    if (wire('page')->template->name === 'admin') {
+      if ($value instanceof FormBuilderForm) {
+        return $value->id;
+      }
+
+      return $value ? (int) $value : '';
+    }
+
+    return $value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+    return $value ? $this->modules->FormBuilder->render($value) : '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function ___wakeupValue(Page $page, Field $field, $value): FormBuilderForm|int|null|string|false {
+    if ($value) {
+      $value = $this->modules->FormBuilder->form($value);
+    }
+
+    if (wire('page')->template->name === 'admin') {
+      if ($value instanceof FormBuilderForm) {
+        return $value->id;
+      }
+
+      return $value ? (int) $value : '';
+    }
+
+    return match ($field->field_output) {
+      'form_id_or_false' => $value ? $value->id : false,
+      'form_name_or_empty_string' => $value ? $value->name : '',
+      default => $value ? $value : null,
+    };
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function ___sleepValue(Page $page, Field $field, $value) {
+    return $value ? (int) $value : '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getBlankValue(Page $page, Field $field) {
+    return match ($field->field_output) {
+      'form_id_or_false' => false,
+      'form_name_or_empty_string' => '',
+      default => null,
+    };
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getInputfield(Page $page, Field $field) {
+    return $this->modules->InputfieldFormSelect;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function ___saveFieldReady(Field $field) {
+    $selectOptionType = $field->get('form_select_option_type');
+    $includedIds = $field->get('included_form_ids') ?? [];
+    $excludedIds = $field->get('excluded_form_ids') ?? [];
+
+    $filterValues = match ($selectOptionType) {
+      'include_selected' => $includedIds,
+      'exclude_selected' => $excludedIds,
+      'include_name_startswith' => $field->get('name_startswith_value') ?? '',
+      'include_name_endswith' => $field->get('name_endswith_value') ?? '',
+      'include_name_contains' => $field->get('name_contains_value') ?? '',
+      default => null,
+    };
+
+    $field->set('form_select_option_type', $selectOptionType);
+    $field->set('included_form_ids', $includedIds);
+    $field->set('excluded_form_ids', $excludedIds);
+    $field->set('filter_values', $filterValues);
   }
 
   /**
@@ -86,8 +169,6 @@ class FieldtypeFormSelect extends FieldType {
   public function ___getConfigAllowContext($field) {
     return [
       'form_option_style',
-      'field_output',
-      'field_output_empty',
     ];
   }
 
@@ -199,112 +280,88 @@ class FieldtypeFormSelect extends FieldType {
           'label' => __('Value when a form has been selected'),
           'icon' => 'check-circle',
           'type' => 'InputfieldRadios',
-          'columnWidth' => 50,
           'required' => true,
           'defaultValue' => '1',
-          'value' => $field->get('field_output') ?? 'form_id',
+          'value' => $field->get('field_output') ?? 'form_id_or_false',
           'options' => [
-            'form_id' => __('Form ID'),
-            'form_name' => __('Form name'),
-            'form_builder_form' => __('FormBuilder form object'),
+            'form_id_or_false' => __('Form ID or boolean false when none selected'),
+            'form_name_or_empty_string' => __('Form name or empty string when none selected'),
+            'form_builder_form' => __('FormBuilder form object or null when none selected'),
           ],
         ],
-        'field_output_empty' => [
-          'label' => __('Value when a form has not been selected'),
-          'type' => 'InputfieldRadios',
-          'icon' => 'ban',
-          'columnWidth' => 50,
-          'required' => true,
-          'defaultValue' => '1',
-          'value' => $field->get('field_output_empty') ?? 'null',
-          'options' => [
-            'null' => __('null'),
-            'empty_string' => __('Empty string'),
-            'false' => __('Boolean false'),
-          ],
+        'example_field_id_or_false' => [
+          'type' => 'InputfieldMarkup',
+          'label' => __('API usage example - Form ID or boolean false when none selected'),
+          'icon' => 'code',
+          'showIf' => 'field_output=form_id_or_false',
+          'value' => <<<EOT
+          <pre><code>// Using the page field render method
+
+          if (&dollar;page->field_name) {
+            echo &dollar;page->render('field_name');
+          }
+
+          // Using the FormBuilder render method
+
+          if (&dollar;page->field_name) {
+            echo &dollar;forms->render(&dollar;forms->render(&dollar;page->field_name));
+          }
+          </code></pre>
+          EOT,
+        ],
+        'example_field_name_or_empty_string' => [
+          'type' => 'InputfieldMarkup',
+          'label' => __('API usage example - Form name or empty string when none selected'),
+          'icon' => 'code',
+          'showIf' => 'field_output=form_name_or_empty_string',
+          'value' => <<<EOT
+          <pre><code>// Using the page field render method
+
+          if (&dollar;page->field_name) {
+            echo &dollar;page->render('field_name');
+          }
+
+          // Using the FormBuilder render method
+
+          if (&dollar;page->field_name) {
+            echo &dollar;forms->render(&dollar;forms->render(&dollar;page->field_name));
+          }
+          </code></pre>
+          EOT,
+        ],
+        'example_form_builder_form' => [
+          'type' => 'InputfieldMarkup',
+          'label' => __('API usage example - Form name or empty string when none selected'),
+          'icon' => 'code',
+          'showIf' => 'field_output=form_builder_form',
+          'value' => <<<EOT
+          <pre><code>// Conditionally render using a nullsafe operator and FormBuilder API
+
+          echo &dollar;page->field_name?->render();
+
+          echo &dollar;page->field_name?->embed();
+
+          // With assets
+
+          &dollar;form = &dollar;page->field_name;
+
+          echo &dollar;form?->styles;
+          echo &dollar;form?->scripts;
+
+          echo &dollar;form?->render();
+
+          // Using the FormBuilder render method
+
+          if (&dollar;page->field_name) {
+            echo &dollar;forms->render(&dollar;page->field_name);
+          }
+          </code></pre>
+          EOT,
         ],
       ],
     ]);
 
     return $inputfields;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function sanitizeValue(Page $page, Field $field, $value): FormBuilderForm|int|null {
-    // FromBuilderForm is safe and indicates we are sending to the $page object
-    if ($value instanceof FormBuilderForm) {
-      return $value;
-    }
-
-    if (ctype_digit((string) $value)) {
-      // code...
-    }
-
-    !empty($value) && !ctype_digit((string) $value) && throw new InvalidArgumentException(
-      "Form select value must be an integer or integer represented as a string, {$value} provided"
-    );
-
-    return (int) $value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
-    return $value ? $this->modules->FormBuilder->render($value) : '';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function ___wakeupValue(Page $page, Field $field, $value): ?FormBuilderForm {
-    return $value ? $this->modules->FormBuilder->form($value) : null;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function ___sleepValue(Page $page, Field $field, $value) {
-    return $value ? (int) $value : null;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getBlankValue(Page $page, Field $field) {
-    return null;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getInputfield(Page $page, Field $field) {
-    return $this->modules->InputfieldFormSelect;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function ___saveFieldReady(Field $field) {
-    $selectOptionType = $field->get('form_select_option_type');
-    $includedIds = $field->get('included_form_ids') ?? [];
-    $excludedIds = $field->get('excluded_form_ids') ?? [];
-
-    $filterValues = match ($selectOptionType) {
-      'include_selected' => $includedIds,
-      'exclude_selected' => $excludedIds,
-      'include_name_startswith' => $field->get('name_startswith_value') ?? '',
-      'include_name_endswith' => $field->get('name_endswith_value') ?? '',
-      'include_name_contains' => $field->get('name_contains_value') ?? '',
-      default => null,
-    };
-
-    $field->set('form_select_option_type', $selectOptionType);
-    $field->set('included_form_ids', $includedIds);
-    $field->set('excluded_form_ids', $excludedIds);
-    $field->set('filter_values', $filterValues);
   }
 
   /**

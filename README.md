@@ -25,6 +25,8 @@ Ensure that FormBuilder is installed, then install this module. Create some form
 - Include forms where the name ends with a specified string
 - Include forms where the name contains a specified string
 
+You may choose how the field outputs values both when a form is or isn't selected.
+
 Optionally, choose how the form names will appear in the select element when rendered. Options include:
 
 - Default name: my-form-name
