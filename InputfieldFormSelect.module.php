@@ -4,10 +4,11 @@
 
 class InputfieldFormSelect extends Inputfield {
 
+  /**
+   * Config options: Form select field label type
+   */
   private const FORM_OPTION_STYLE_NAME = 'name';
-
   private const FORM_OPTION_STYLE_LABEL = 'label';
-
   private const FORM_OPTION_STYLE_LABEL_CAP = 'label_cap';
 
   public static function getModuleInfo() {
@@ -30,85 +31,57 @@ class InputfieldFormSelect extends Inputfield {
 
   public function __construct() {
     parent::__construct();
+
     $this->set('form_option_style', self::FORM_OPTION_STYLE_NAME);
-  }
-
-  /**
-   * Creates a null safe method of rendering the form using the iframe method.
-   * @param  string                $fieldName Name of field
-   * @param  string|Page|int|null  $page      ID or Page where field is located, if not provided the
-   *                                          current page is assumed
-   * @return string|null                      Markup for embedding or null if field is empty
-   */
-  public function embed(string $fieldName, string|Page|int|null $page = null): ?string {
-    $targetPage = match (gettype($page)) {
-      'string' => $this->pages->get($page),
-      'int' => $this->pages->get($page),
-      'object' => $page,
-      default => $this->page,
-    };
-
-    $fieldValue = $targetPage->$fieldName;
-
-    if (!$fieldValue) {
-      return null;
-    }
-
-    return $this->forms->embed($targetPage->$fieldName);
   }
 
   /**
    * {@inheritdoc}
    */
   public function ___render() {
-    $attrs = $this->getAttributes();
-    $value = $attrs['value'];
+    ['value' => $value] = $this->getAttributes();
 
-    unset($attrs['value']);
+    $form = $this->wire('forms')->get($value);
 
-    return <<<EOT
-    <select {$this->getAttributesString($attrs)}>
-    {$this->___renderOptions($value)}
-    </select>
-    EOT;
+    $select = $this->modules->get('InputfieldSelect');
+    $select->name = $this->name;
+    $select->skipLabel = Inputfield::skipLabelHeader;
+    $select->value = $form?->id;
+    $select = $this->___addOptions($select);
+
+    return $select->render();
   }
 
   /**
-   * Renders individual options for the select element
-   * @param  string|null  $value          Current value
-   * @param  bool|boolean $addEmptyOption Add an empty option
-   * @return string
+   * Adds options to the InputfieldSelect
+   * @param  InputfieldSelect $inputfieldSelect Inputfield without options set
+   * @return InputfieldSelect                   Inputfield with options added
    */
-  private function ___renderOptions(?string $value = null) {
-    $markup =<<<EOT
-    <option value="%{VALUE}" %{SELECTED}>%{LABEL}</option>
-    EOT;
-
-    // Format the field option style based on the Inputfield configuration
-    $formatOptionLabel = function(string $val) {
-      $label = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL;
-      $labelCap = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL_CAP;
-
-      ($label || $labelCap) && $val = preg_replace('/[-_]/', ' ', $val);
-      $labelCap && $val = ucwords($val);
-
-      return $val;
-    };
-
+  private function ___addOptions(InputfieldSelect $inputfieldSelect): InputfieldSelect {
     $forms = $this->___getFormOptions();
 
-    $options = array_map(fn($form) => strtr($markup, [
-      '%{VALUE}' => $form->id,
-      '%{SELECTED}' => $form->id === (int) $value ? 'selected' : null,
-      '%{LABEL}' => $formatOptionLabel($form->name),
-    ]), $forms);
+    return array_reduce($forms, fn ($inputfield, $form) => $inputfield->addOption(
+      value: $form->id,
+      label: $this->___formatOptionLabel($form),
+    ), $inputfieldSelect);
+  }
 
-    array_unshift(
-      $options,
-      strtr($markup, ['%{VALUE}' => '', '%{SELECTED}' => '', '%{LABEL}' => ''])
-    );
+  /**
+   * Creates the InputfieldSelect element option label by formatting as configured
+   * @param  FormBuilderForm $form The form with the name to be formatted
+   * @return string                Formatted select label
+   */
+  public function ___formatOptionLabel(FormBuilderForm $form): string {
+    $value = $form->name;
 
-    return implode('', $options);
+    $label = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL;
+    $labelCap = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL_CAP;
+
+    ($label || $labelCap) && $value = preg_replace('/[-_]/', ' ', $value);
+
+    $labelCap && $value = ucwords($value);
+
+    return $value;
   }
 
   /**
@@ -138,11 +111,11 @@ class InputfieldFormSelect extends Inputfield {
     };
 
     $forms = match ($field->form_select_option_type) {
-      'include_selected' => array_filter($forms, fn($form) => in_array($form->id, $filter)),
-      'exclude_selected' => array_filter($forms, fn($form) => !in_array($form->id, $filter)),
-      'include_name_startswith' => array_filter($forms, fn($form) => $nameMatch($form, 'starts')),
-      'include_name_endswith' => array_filter($forms, fn($form) => $nameMatch($form, 'ends')),
-      'include_name_contains' => array_filter($forms, fn($form) => $nameMatch($form, 'contains')),
+      'include_selected' => array_filter($forms, fn ($form) => in_array($form->id, $filter)),
+      'exclude_selected' => array_filter($forms, fn ($form) => !in_array($form->id, $filter)),
+      'include_name_startswith' => array_filter($forms, fn ($form) => $nameMatch($form, 'starts')),
+      'include_name_endswith' => array_filter($forms, fn ($form) => $nameMatch($form, 'ends')),
+      'include_name_contains' => array_filter($forms, fn ($form) => $nameMatch($form, 'contains')),
       default => $forms,
     };
 

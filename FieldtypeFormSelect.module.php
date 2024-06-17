@@ -1,6 +1,15 @@
 <?php namespace ProcessWire;
 
+use InvalidArgumentException;
+
 class FieldtypeFormSelect extends FieldType {
+
+  /**
+   * Config options: Form output method
+   */
+  private const FIELD_OUTPUT_FORM_NAME = 'form_name';
+  private const FIELD_OUTPUT_FORM_BUILDER = 'form_builder';
+  private const FIELD_OUTPUT_FORM_ID = 'form_id';
 
   public static function getModuleInfo() {
     return [
@@ -52,7 +61,6 @@ class FieldtypeFormSelect extends FieldType {
   }
 
   /**
-   * Removes the values of all form select fields with the value of the given ID on a given page
    * @param array<string> $fieldNames
    */
   public function clearFieldValuesWithFormId(
@@ -61,7 +69,7 @@ class FieldtypeFormSelect extends FieldType {
     array $fieldNames = []
   ): void {
     foreach ($fieldNames as $fieldName) {
-      (int) $page->$fieldName === $deletedFormId && $page->set($fieldName, null) && $page->save();
+      (int) $page->$fieldName->id === $deletedFormId && $page->setAndSave($fieldName, '');
     }
   }
 
@@ -71,6 +79,7 @@ class FieldtypeFormSelect extends FieldType {
   public function ___getConfigAllowContext($field) {
     return [
       'form_option_style',
+      'field_output',
     ];
   }
 
@@ -175,31 +184,63 @@ class FieldtypeFormSelect extends FieldType {
       'requiredIf' => 'form_select_option_type=include_name_contains',
     ]);
 
+    $inputfields->add([
+      'type' => 'InputfieldSelect',
+      'name' => 'field_ouput',
+      'label' => __('Field Output'),
+      'description' => __('What type of value should the field output when a value is present?'),
+      'value' => $field->get('name_endswith_value') ?? '',
+    ]);
+
     return $inputfields;
   }
 
   /**
-   * We are storing the name of a form, so we sanitize to the form name requirements
    * {@inheritdoc}
    */
-  public function sanitizeValue(Page $page, Field $field, $value): string {
-    return preg_replace('/[^a-z0-9-_]/i', '', $value);
+  public function sanitizeValue(Page $page, Field $field, $value): FormBuilderForm|int|null {
+    // FromBuilderForm is safe and indicates we are sending to the $page object
+    if ($value instanceof FormBuilderForm) {
+      return $value;
+    }
+
+    if (ctype_digit((string) $value)) {
+      // code...
+    }
+
+    !empty($value) && !ctype_digit((string) $value) && throw new InvalidArgumentException(
+      "Form select value must be an integer or integer represented as a string, {$value} provided"
+    );
+
+    return (int) $value;
   }
 
   /**
-   * Return the rendered Form Builder form
    * {@inheritdoc}
    */
   public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
-    return $this->modules->FormBuilder->render($value);
+    return $value ? $this->modules->FormBuilder->render($value) : '';
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function ___wakeupValue(Page $page, Field $field, $value): ?FormBuilderForm {
+    return $value ? $this->modules->FormBuilder->form($value) : null;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function ___sleepValue(Page $page, Field $field, $value) {
+    return $value ? (int) $value : null;
+  }
 
   /**
    * {@inheritdoc}
    */
   public function getBlankValue(Page $page, Field $field) {
-    return '';
+    return null;
   }
 
   /**
