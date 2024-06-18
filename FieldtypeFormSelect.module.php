@@ -89,6 +89,10 @@ class FieldtypeFormSelect extends FieldType {
    * {@inheritdoc}
    */
   public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+    if ($value instanceof FormBuilderForm) {
+      return $value->render();
+    }
+
     return $value ? $this->modules->FormBuilder->render($value) : '';
   }
 
@@ -109,9 +113,9 @@ class FieldtypeFormSelect extends FieldType {
     }
 
     return match ($field->field_output) {
-      'form_id_or_false' => $value ? $value->id : false,
-      'form_name_or_empty_string' => $value ? $value->name : '',
-      default => $value ? $value : null,
+      'form_id_or_null' => $value ? $value->id : $this->getBlankValue($page, $field),
+      'form_name_or_null' => $value ? $value->name : $this->getBlankValue($page, $field),
+      default => $value ? $value : $this->getBlankValue($page, $field),
     };
   }
 
@@ -126,11 +130,7 @@ class FieldtypeFormSelect extends FieldType {
    * {@inheritdoc}
    */
   public function getBlankValue(Page $page, Field $field) {
-    return match ($field->field_output) {
-      'form_id_or_false' => false,
-      'form_name_or_empty_string' => '',
-      default => null,
-    };
+    return null;
   }
 
   /**
@@ -197,7 +197,8 @@ class FieldtypeFormSelect extends FieldType {
 
     $inputfields->add([
       'type' => 'InputfieldFieldset',
-      'label' => __('Included forms'),
+      'label' => '',
+      'skipLabel' =>  Inputfield::skipLabelHeader,
       'name' => 'included_forms',
       'collapsed' => Inputfield::collapsedNever,
       'children' => [
@@ -206,7 +207,6 @@ class FieldtypeFormSelect extends FieldType {
           'label' => __('Form select options'),
           'type' => 'InputfieldRadios',
           'icon' => 'list',
-          'required' => 1,
           'defaultValue' => '1',
           'description' => __('Which forms should be available for selection in this field?'),
           'value' => $field->get('form_select_option_type') ?? 'all',
@@ -272,89 +272,94 @@ class FieldtypeFormSelect extends FieldType {
     // Field output value when value is present
     $inputfields->add([
       'type' => 'InputfieldFieldset',
-      'label' => __('Form field value type'),
+      'label' => '',
+      'skipLabel' =>  Inputfield::skipLabelHeader,
       'name' => 'field_output_types',
       'collapsed' => Inputfield::collapsedNever,
       'children' => [
         'field_output' => [
-          'label' => __('Value when a form has been selected'),
-          'icon' => 'check-circle',
+          'label' => __('Field output value'),
+          'icon' => 'tasks',
           'type' => 'InputfieldRadios',
-          'required' => true,
           'defaultValue' => '1',
-          'value' => $field->get('field_output') ?? 'form_id_or_false',
+          'value' => $field->get('field_output') ?? 'form_id_or_null',
           'options' => [
-            'form_id_or_false' => __('Form ID or boolean false when none selected'),
-            'form_name_or_empty_string' => __('Form name or empty string when none selected'),
-            'form_builder_form' => __('FormBuilder form object or null when none selected'),
+            'form_id_or_null' => __('Form ID or null when a form is not selected'),
+            'form_name_or_null' => __('Form name or null when a form is not selected'),
+            'form_builder_form' => __('FormBuilder form object or null when a form is not selected'),
           ],
         ],
         'example_field_id_or_false' => [
           'type' => 'InputfieldMarkup',
-          'label' => __('API usage example - Form ID or boolean false when none selected'),
+          'label' => __('API usage example - Form ID or null when a form is not selected'),
           'icon' => 'code',
-          'showIf' => 'field_output=form_id_or_false',
+          'showIf' => 'field_output=form_id_or_null',
           'value' => <<<EOT
-          <pre><code>// Using the page field render method
-
-          if (&dollar;page->field_name) {
-            echo &dollar;page->render('field_name');
+          <p>Using the Page field render method, renders as 'Option C' or empty string if a form is not selected</p>
+          <pre><code>if (&dollar;page->your_field) {
+            echo &dollar;page->render('your_field');
           }
+          </code></pre>
+          <p>Using the FormBuilder render/embed methods</p>
+          <pre><code>if (&dollar;page->your_field) {
+             &dollar;form = &dollar;forms->form(&dollar;page->your_field);
 
-          // Using the FormBuilder render method
-
-          if (&dollar;page->field_name) {
-            echo &dollar;forms->render(&dollar;forms->render(&dollar;page->field_name));
+             echo &dollar;form->styles;
+             echo &dollar;form->scripts;
+             echo &dollar;form->render();
           }
           </code></pre>
           EOT,
         ],
         'example_field_name_or_empty_string' => [
           'type' => 'InputfieldMarkup',
-          'label' => __('API usage example - Form name or empty string when none selected'),
+          'label' => __('API usage example - Form name or empty null when a form is not selected'),
           'icon' => 'code',
-          'showIf' => 'field_output=form_name_or_empty_string',
+          'showIf' => 'field_output=form_name_or_null',
           'value' => <<<EOT
-          <pre><code>// Using the page field render method
-
-          if (&dollar;page->field_name) {
-            echo &dollar;page->render('field_name');
+          <p>Using the Page field render method, renders as 'Option C' or empty string if a form is not selected</p>
+          <pre><code>if (&dollar;page->your_field) {
+            echo &dollar;page->render('your_field');
           }
+          </code></pre>
+          <p>Using the FormBuilder render/embed methods</p>
+          <pre><code>if (&dollar;page->your_field) {
+             &dollar;form = &dollar;forms->form(&dollar;page->your_field);
 
-          // Using the FormBuilder render method
-
-          if (&dollar;page->field_name) {
-            echo &dollar;forms->render(&dollar;forms->render(&dollar;page->field_name));
+             echo &dollar;form->styles;
+             echo &dollar;form->scripts;
+             echo &dollar;form->render();
           }
           </code></pre>
           EOT,
         ],
         'example_form_builder_form' => [
           'type' => 'InputfieldMarkup',
-          'label' => __('API usage example - Form name or empty string when none selected'),
+          'label' => __('API usage example - FormBuilder form or null when a form is not selected'),
+          'description' => __('Using this method will pass the FormBuilder form object directly from the field'),
           'icon' => 'code',
           'showIf' => 'field_output=form_builder_form',
           'value' => <<<EOT
-          <pre><code>// Conditionally render using a nullsafe operator and FormBuilder API
+          <p>Conditionally render/embed using a nullsafe operator</p>
+          <pre><code>echo &dollar;page->your_field?->render();
 
-          echo &dollar;page->field_name?->render();
-
-          echo &dollar;page->field_name?->embed();
-
-          // With assets
-
-          &dollar;form = &dollar;page->field_name;
+          echo &dollar;page->your_field?->embed();
+          </code></pre>
+          <p>Conditionally render/embed with assets</p>
+          <pre><code>&dollar;form = &dollar;page->your_field;
 
           echo &dollar;form?->styles;
           echo &dollar;form?->scripts;
-
           echo &dollar;form?->render();
-
-          // Using the FormBuilder render method
-
-          if (&dollar;page->field_name) {
-            echo &dollar;forms->render(&dollar;page->field_name);
+          </code></pre>
+          <p>Render using FormBuilder</p>
+          <pre><code>if (&dollar;page->your_field) {
+            echo &dollar;forms->render(&dollar;page->your_field);
           }
+
+          </code></pre>
+          <p>Using the Page field render method, renders as 'Option C' or empty string when a form is not selected</p>
+          <pre><code>echo &dollar;page->render('your_field');
           </code></pre>
           EOT,
         ],
