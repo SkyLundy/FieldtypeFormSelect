@@ -2,8 +2,9 @@
 
 ## 1.0.1 2024-09-17
 
-### Bugfix
+### Bugfix, new feature
 
+- Add first letter capitalization option when presenting forms to select in admin Inputfield
 - Fix issue where field may not work with multiple instances due to accidental inclusion of 'singular' in getModuleInfo()
 
 Changelog is missing the bump to 1.0.0, but you didn't miss anything.
