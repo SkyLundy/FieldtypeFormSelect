@@ -8,7 +8,7 @@ class InputfieldFormSelect extends Inputfield {
     return [
       'title' => __('FormBuilder Select Inputfield'),
       'summary' => __('Select a form created via the Pro Form Builder module', __FILE__),
-      'version' => '100',
+      'version' => '101',
       'href' => 'https://processwire.com/talk/topic/29771-fieldtypeformselect-a-field-for-selecting-forms-built-using-the-pro-formbuilder-module/',
       'icon' => 'envelope-o',
       'requires' => [
@@ -26,6 +26,7 @@ class InputfieldFormSelect extends Inputfield {
   private const FORM_OPTION_STYLE_NAME = 'name';
   private const FORM_OPTION_STYLE_LABEL = 'label';
   private const FORM_OPTION_STYLE_LABEL_CAP = 'label_cap';
+  private const FORM_OPTION_STYLE_LABEL_CAP_FIRST = 'label_cap_first';
 
 
   public function __construct() {
@@ -75,8 +76,11 @@ class InputfieldFormSelect extends Inputfield {
 
     $label = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL;
     $labelCap = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL_CAP;
+    $labelCapFirst = $this->form_option_style === self::FORM_OPTION_STYLE_LABEL_CAP_FIRST;
 
-    ($label || $labelCap) && $value = preg_replace('/[-_]/', ' ', $value);
+    ($label || $labelCap || $labelCapFirst) && $value = preg_replace('/[-_]/', ' ', $value);
+
+    $labelCapFirst && $value = ucfirst($value);
 
     $labelCap && $value = ucwords($value);
 
@@ -143,6 +147,7 @@ class InputfieldFormSelect extends Inputfield {
         self::FORM_OPTION_STYLE_NAME => 'an-example-form (original)',
         self::FORM_OPTION_STYLE_LABEL => 'an example form (as label, original casing)',
         self::FORM_OPTION_STYLE_LABEL_CAP => 'An Example Form (as label, words capitalized)',
+        self::FORM_OPTION_STYLE_LABEL_CAP_FIRST => 'An example form (as label, first word capitalized)',
       ],
       'required' => true,
     ]);
