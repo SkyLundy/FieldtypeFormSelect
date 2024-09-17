@@ -11,8 +11,6 @@ class FieldtypeFormSelect extends FieldType {
       'version' => '100',
       'href' => 'https://processwire.com/talk/topic/29771-fieldtypeformselect-a-field-for-selecting-forms-built-using-the-pro-formbuilder-module/',
       'icon' => 'envelope-o',
-      'autoload' => true,
-      'singular' => true,
       'requires' => [
         'FormBuilder',
         'ProcessWire>=300',
