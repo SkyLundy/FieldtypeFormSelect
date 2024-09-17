@@ -32,6 +32,7 @@ Optionally, choose how the form names will appear in the select element when ren
 - Default name: my-form-name
 - Lowercase and spaced: my form name
 - Capitalized and spaced: My Form Name
+- First letter capitalized and spaced: My form name
 
 This field stores the ID of the for that is selected, or null otherwise.
 
