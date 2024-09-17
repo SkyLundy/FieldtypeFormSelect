@@ -8,7 +8,7 @@ class FieldtypeFormSelect extends FieldType {
     return [
       'title' => __('Form Select'),
       'summary' => __('Select a form created via the Pro Form Builder module', __FILE__),
-      'version' => '100',
+      'version' => '101',
       'href' => 'https://processwire.com/talk/topic/29771-fieldtypeformselect-a-field-for-selecting-forms-built-using-the-pro-formbuilder-module/',
       'icon' => 'envelope-o',
       'requires' => [

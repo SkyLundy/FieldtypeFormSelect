@@ -1,5 +1,13 @@
 # Form Select Changelog
 
+## 1.0.1 2024-09-17
+
+### Bugfix
+
+- Fix issue where field may not work with multiple instances due to accidental inclusion of 'singular' in getModuleInfo()
+
+Changelog is missing the bump to 1.0.0, but you didn't miss anything.
+
 ## 0.1.0 2024-03-01
 
 ### Initial release
